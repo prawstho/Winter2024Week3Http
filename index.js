@@ -1,15 +1,31 @@
 const http = require('http');
 const fs = require('fs');
+const path = require('path');
+
+const EventEmitter = require('events');
+class MyEmitter extends EventEmitter {}
+const myEmitter = new EventEmitter(); 
+
 global.DEBUG = true;
+
+myEmitter.on('route', (url) => {
+  const d = new Date();
+  if(DEBUG) console.log(`Route Event on: ${url} at ${d}`);
+  if(!fs.existsSync(path.join(__dirname, 'logs'))) {
+    fs.mkdirSync(path.join(__dirname, 'logs'));
+  }
+  fs.appendFile(path.join(__dirname, 'logs', 'route.log'), `Route Event on: ${url} at ${d}\n`, (error) => {
+    if(error) throw error;
+  });
+});
 
 const server = http.createServer((request, response) => {
   if(DEBUG) console.log('Request Url:', request.url);
   let path = './views/';
   switch(request.url) {
     case '/':
-      if(DEBUG) console.log('Root Route');
       path += 'index.html';
-      if(DEBUG) console.log('Path:', path);
+      myEmitter.emit('route', path);
       fetchFile(path);
       break;
     case '/home':
@@ -22,8 +38,8 @@ const server = http.createServer((request, response) => {
       response.end('Cookie Set');
       break;
     case '/about':
-      if(DEBUG) console.log('About Route');    
       path += 'about.html';
+      myEmitter.emit('route', path);
       fetchFile(path);
       break;
     default:
